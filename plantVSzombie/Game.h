@@ -5,8 +5,9 @@
 #include"inPut.h"
 #include"threadPool.h"
 #include"simpleZombie.h"
-#include"Plant.h"
+#include"attackPlant.h"
 #include"peaShooter.h"
+#include"sunFlower.h"
 #include<algorithm>
 #include<map>
 
@@ -23,11 +24,25 @@ namespace TianHui
 			init_(false),
 			pool_{},
 			zombies_{},
-			plants_{}
+			plants_{},
+			succeed_{-2},
+			chanziTexture_{},
+			carTexture_{},
+			card_{},
+			sunFlag_{}
 		{
 			if (!isInit()) {
 				Init();
 				pool_.start(6);
+
+				//初始化卡片
+				const char* path = "E:\\GamePicture\\image\\Card\\cardPlant\\peaShooter.bmp";
+				card_[1] = setTouMing(path);
+
+				//初始化铲子
+				chanziTexture_ = setTouMing("E:\\GamePicture\\image\\Card\\cardSelect\\chanzi.bmp");
+
+
 			}
 
 			
@@ -41,6 +56,9 @@ namespace TianHui
 				{
 					SDL_DestroyWindow(window_);
 					SDL_DestroyRenderer(render_);
+					SDL_DestroyTexture(chanziTexture_);
+					SDL_DestroyTexture(carTexture_);
+
 					window_ = nullptr;
 					render_ = nullptr;
 
@@ -49,10 +67,18 @@ namespace TianHui
 
 					init_ = false;
 				}
+				
+
 
 			}
 
 
+			for (auto& i : card_)
+			{				
+				const auto &text = i.second;
+				if (text)
+					SDL_DestroyTexture(text);
+			}
 
 
 		}
@@ -128,6 +154,8 @@ namespace TianHui
 
 		void clearDie()
 		{
+			
+
 			// 清理死亡植物
 			for (auto& plant : plants_)
 			{
@@ -150,10 +178,16 @@ namespace TianHui
 			for (auto& zombie : zombies_)
 			{
 				auto begin = zombie.second.begin();
-				for (int i = zombie.second.size() - 1; i >= 0; --i)
+
+				int size = zombie.second.size() - 1;
+
+				succeed_ = 0;
+
+				for (int i = size; i >= 0; --i)
 				{
+					succeed_ = 1;
 					if (zombie.second[i]->isDie())
-					{
+					{						
 						int temp = i;
 						--i;
 						zombie.second.erase(begin + temp);
@@ -163,42 +197,81 @@ namespace TianHui
 
 			}
 
+			
+
 		}
 
 
 		void creatZombie(int size)
 		{
 
-			pool_.submit([&]() {
-				for (int i = 0; i < size; ++i)
-				{
-					//int random = rand() % 650;
-					int index_ = rand() % 5 + 1;
 
-					int y = 1310 - index_ * 50 + i*120 ;
-					zombies_[index_].emplace_back(new simpleZombie(y, findZombieY(index_)));
+			for (int i = 1; i <= size; ++i)
+			{
+				//int random = rand() % 650;
+				int index_ = rand() % 5 + 1;
 
-				}
+				int y = 1310 - index_ * 50 + i * 120;
+				zombies_[index_].emplace_back(new simpleZombie(y, findZombieY(index_)));
 
-				});
+			}
+
+	
+
+
 
 		}
 
 		void drawSelectCard(int cardID,const Position&pos)
-		{
-			if (cardID != 1)
-				return;
+		{		
 
-			const char* path = "E:\\GamePicture\\image\\Card\\cardPlant\\peaShooter.bmp";
 			SDL_Rect rect{ pos.x_,pos.y_,0,0 };
+			
+			SDL_QueryTexture(card_[cardID], nullptr, nullptr, &rect.w, &rect.h);
 
-			auto texture = setTouMing(path, rect);
-
-			SDL_RenderCopy(render_, texture, nullptr, &rect);
-
-			SDL_DestroyTexture(texture);
+			rect.x = pos.x_;
+			rect.y = pos.y_;
+			SDL_RenderCopy(render_, card_[cardID], nullptr, &rect);
 
 		}
+
+		void drawChanzi(const Position& pos)
+		{
+			SDL_Rect getRect{};
+			SDL_QueryTexture(chanziTexture_, nullptr, nullptr, &getRect.w, &getRect.h);
+
+			getRect.x = pos.x_;
+			getRect.y = pos.y_;
+
+
+			SDL_RenderCopy(render_, chanziTexture_, nullptr, &getRect);
+
+
+		}
+
+		//判断是否选中了铲子
+		bool getChanzi(int x1, int y1)
+		{
+			if (x1 >= 1335 && x1 <= 1381)
+				if (y1 >= 12 && y1 <= 67)
+					return true;
+
+			return false;
+		}
+
+		//判断是否点中了太阳
+		bool isSeclctSun(int x1,int y1)
+		{
+			auto p = findGrid(x1, y1);
+
+			if (x1 >= p.x_ && x1 <= p.x_ + 61)
+				if (y1 >= p.y_ + 56 && y1 <= p.y_ + 124)
+					return true;
+
+			return false;			
+
+		}
+		
 
 
 		void start()
@@ -209,25 +282,83 @@ namespace TianHui
 
 			//记录鼠标左键点击次数
 			int leftCount{};
+			//记录铲子鼠标点击次数
+			int chanLeftCount{};
 
-			//plants_[noCopy::findPlntRode(109)].emplace_back(new peaShooter(findGrid(344, 109)));
+			//卡槽里第几个卡片
+			int cardID = { -1 };
+
+			//铲子是否铲除植物
+			bool chanFlag = false;
+
+			plants_[noCopy::findPlntRode(109)].emplace_back(new sunFlower(findGrid(344, 109)));
 
 
-			int e_x{}, e_y{};// 判断鼠标是否移动
-			bool e_move = false;
+			//int e_x{}, e_y{};// 判断鼠标是否移动
+			//bool e_move = false;
 			while (!isQuit())
 			{
+				SDL_SetRenderDrawColor(render_, 0, 0, 0, 255);
+				SDL_RenderClear(render_);
 
 				compute();
 				upDate();
 				draw();
 
+				
 
+				// 胜利了
+				if (succeed_ == 0)
+				{
+					//end();quit=true;
+					//quit_ = true;
+				}
+				else if(succeed_ == -1)//输了
+				{
+
+				}
 
 				auto res = pool_.submit([this]() {this->clearDie(); });
 				res.get();
 
-				e_move = false;
+				//e_move = false;
+
+				//获取鼠标位置
+				int x{}, y{};
+				auto button = SDL_GetMouseState(&x, &y);
+
+				//找到植物种植点
+				auto temp = findGrid(x, y);
+
+
+				//判断当前位置是否有植物，并设置标志
+				bool flagPlantplants = true;
+				for (auto& plant : plants_)
+				{
+					for (auto& i : plant.second)
+						if (temp == i->getPos() && !i->isDie())
+							flagPlantplants = false;
+				}
+
+				
+				//画选择的植物
+				if (cardID != -1)
+				{
+
+					auto res = pool_.submit([this, cardID](const Position& temp) { drawSelectCard(cardID, temp); }, Position(x-30, y-20));
+					res.get();					
+
+				}
+
+
+				//如果第一下点中铲子
+				if (chanFlag)
+				{
+					drawChanzi(Position(x - 40, y - 40));
+					// 铲子移动动画
+					//quit_ = true;
+
+				}
 
 				// 获取按键事件
 				decltype(inPut::getInstance()) e = inPut::getInstance();
@@ -239,54 +370,145 @@ namespace TianHui
 					}
 
 					//判断鼠标是否移动
-					int x{}, y{};
-					auto button = SDL_GetMouseState(&x, &y);
-					if (x != e_x || y != e_y)
+					
+					/*if (x != e_x || y != e_y)
 					{
 						e_move = true;
 					}
 					e_x = x;
-					e_y = y;
+					e_y = y;*/
 
 					
-
 					
-
-
-				
-
 					
 					switch (e->type)
 					{
 					case SDL_MOUSEMOTION:
-						
+					if(true)
 					{
-						auto temp = findGrid(x, y);
-
-						int cardID = getCardID(x, y);
-						auto res = pool_.submit([this, cardID, temp]() { drawSelectCard(cardID, temp); });
-						res.get();
-
-						break;
+						//SDL_RenderClear(render_);
+						// 其他渲染代码
+						//Position(e->motion.x, e->motion.y));
+						//SDL_RenderPresent(render_);
+						
+						
 					}
-
+						break;
 					case SDL_MOUSEBUTTONDOWN:
 
 						if (e->button.button == SDL_BUTTON_LEFT)
 						{
-							++leftCount;
+							++leftCount;	
+							++chanLeftCount;
 
+							sunFlag_ = isSeclctSun(x, y);
 
-							if (leftCount % 2 == 1)
+							
+
+							if (chanLeftCount % 2 == 1)
 							{
-								
+								if (chanLeftCount >= 1000)
+									chanLeftCount = 0;
 
 
 								
+								chanFlag = getChanzi(x, y);
+
+							}
+							else
+							{
+
+								
+
+								if (!getChanzi(x, y) && chanFlag)
+								{
+									chanFlag = false;
+
+									//找到铲子要铲除的植物的坐标
+									auto pos = findGrid(x, y);
+
+									bool del = false;
+									for (auto& i : plants_)
+									{
+										if (del)
+											break;
+
+										auto& plant = i.second;
+										for (int j = plant.size() - 1; j >= 0; --j)
+										{
+											if (plant[j]->getPos() == pos)
+											{
+												plant.erase(plant.begin() + j);
+												del = true;
+												break;
+											}
+										}
+
+									}
 
 
 
 							}
+
+							
+
+
+
+						}
+
+
+
+							//第二次点击鼠标，种植植物
+							if (leftCount % 2 == 0)
+							{
+								if (leftCount >= 1000)
+									leftCount = 0;
+
+								//auto temp = findGrid(x, y);
+																
+								if (flagPlantplants && cardID == 1 && getCardID(x, y) != 1)
+								{
+									auto& res = plants_[noCopy::findPlntRode(temp.y_)].emplace_back(new peaShooter(temp));
+									res.get();
+								}
+
+
+
+
+
+								
+							
+								//判断点击植物卡片
+								cardID = -1;
+
+
+
+							}
+							else//第一次点击鼠标
+							{
+
+
+								if (cardID == 1)
+									cardID = -1;
+
+								//if (!getChanzi(x, y))
+								cardID = getCardID(x, y);
+
+								if (cardID == -1)
+									++leftCount;
+
+								
+
+								
+								
+									
+
+
+								
+							}
+
+
+
 
 
 						}
@@ -297,32 +519,7 @@ namespace TianHui
 
 						if (e->button.button == SDL_BUTTON_LEFT) {
 
-							//种植植物
-							if (leftCount % 2 == 0)
-							{
-								if(leftCount>=1000)
-									leftCount = 0;
-
-								auto temp = findGrid(x, y);
-								bool flagPlantplants = true;
-
-								//判断当前位置是否有植物，并设置标志
-								for (auto& plant : plants_)
-								{
-									for (auto& i : plant.second)
-										if (temp == i->getPos() && !i->isDie())
-											flagPlantplants = false;
-								}
-
-
-								if (flagPlantplants)
-								{
-									plants_[noCopy::findPlntRode(temp.y_)].emplace_back(new peaShooter(temp));
-
-								}
-
-
-							}
+							
 
 						}
 						break;
@@ -340,6 +537,8 @@ namespace TianHui
 
 
 
+				SDL_Delay(40);
+				SDL_RenderPresent(render_);
 
 
 			}
@@ -361,7 +560,17 @@ namespace TianHui
 
 		bool init_;
 
+		SDL_Texture* chanziTexture_;
 
+		SDL_Texture* carTexture_;
+
+		bool sunFlag_;
+
+		//存放要挑选的卡片
+		std::map<int, SDL_Texture*>card_;
+
+		// 胜利判定
+		int succeed_;
 
 
 	private:
@@ -390,6 +599,30 @@ namespace TianHui
 
 			return temp;
 		}
+
+		SDL_Texture* setTouMing(const char* file)
+		{
+			auto peopleSurface = IMG_Load(file);
+			if (!peopleSurface)
+			{
+				printf("Error open picture!\n\r");
+				return nullptr;
+			}
+
+			SDL_SetColorKey(peopleSurface, SDL_TRUE, SDL_MapRGB(peopleSurface->format, 255, 255, 255));
+
+			auto temp = SDL_CreateTextureFromSurface(render_, peopleSurface);
+			if (!temp)
+			{
+				printf("Error Create Texture!\n\r");
+				return nullptr;
+			}
+
+			SDL_FreeSurface(peopleSurface);
+
+			return temp;
+		}
+
 
 		inline bool isQuit()
 		{
@@ -515,8 +748,7 @@ namespace TianHui
 		void backGround()
 		{
 
-			SDL_SetRenderDrawColor(render_, 0, 0, 0, 255);
-			SDL_RenderClear(render_);
+		
 
 			const char* background = "E:\\GamePicture\\image\\background.bmp";
 			auto texture = IMG_LoadTexture(render_, background);
@@ -587,13 +819,14 @@ namespace TianHui
 			//
 
 			//铲子
-			texture = setTouMing("E:\\GamePicture\\image\\Card\\cardSelect\\chanzi.bmp", getRect);
+			/*texture = setTouMing("E:\\GamePicture\\image\\Card\\cardSelect\\chanzi.bmp", getRect);
 			getRect.x = 1400 - getRect.w;
 			getRect.y = 0;
 			SDL_RenderCopy(render_, texture, nullptr, &getRect);
 
-			SDL_DestroyTexture(texture);
+			SDL_DestroyTexture(texture);*/
 
+			drawChanzi(Position(1320, 0));
 
 
 
@@ -615,7 +848,7 @@ namespace TianHui
 		{
 			
 
-
+			
 			// 绘制背景
 			auto resBackGround = pool_.submit([this]() {this->backGround(); });
 
@@ -630,11 +863,11 @@ namespace TianHui
 			resCard.get();
 			resCard1.get();
 
-
+			
 
 			//std::vector < std::future<int>>resPlant{};
 
-			for (int j = 0; j < plants_.size(); ++j)
+			for (int j = 1; j <= plants_.size(); ++j)
 				for (auto& plant : plants_[j])
 				{
 					std::sort(zombies_[j].begin(), zombies_[j].end(),
@@ -642,7 +875,7 @@ namespace TianHui
 
 					if (zombies_[j].size() == 0)
 					{	
-						auto restemp = (pool_.submit([&]() {return plant->playImage(render_, false); }));
+						auto restemp = (pool_.submit([&]() {return plant->playImage(render_, false,sunFlag_); }));
 						restemp.get();
 						
 					}
@@ -651,7 +884,7 @@ namespace TianHui
 						if (plant->getPos().y_ == noCopy::findY(zombie->getPos().y_)) {
 
 							if (!plant->isDie()) {
-								auto restemp = (pool_.submit([&]() {return plant->attack(render_, zombie->getPos(), zombie->isDie()); }));
+								auto restemp = (pool_.submit([&]() {return plant->draw(render_, zombie->getPos(), zombie->isDie(),sunFlag_); }));
 								int fire = restemp.get();
 								if (fire != -1&& !plant->isDie()&&plant->getPos().x_<=zombie->getPos().x_+40)
 									zombie->setHP(fire);
@@ -671,7 +904,15 @@ namespace TianHui
 				
 
 				for (auto& i : zombies_[j])
-					if (!i->isDie()) {
+					if (!i->isDie())
+					{
+
+						//僵尸吃掉了你的脑子
+						if (i->getPos().x_ <= 180)
+						{
+							succeed_ = -1;
+							//quit_ = true;
+						}
 
 						auto restemp = (pool_.submit([i, j, this]() {return i->attack(render_, plants_[j]); }));
 						restemp.get();
@@ -682,10 +923,8 @@ namespace TianHui
 
 
 
-
 		
-			SDL_Delay(50);
-			SDL_RenderPresent(render_);
+			
 
 		}
 

@@ -88,7 +88,7 @@ public:
 			}
 			else
 			{
-				setSpeed(3);
+				setSpeed(1);
 			}
 
 		}
@@ -97,10 +97,10 @@ public:
 			
 
 			if (temp >= 5 && temp <= 10) {
-				setSpeed(3);
+				setSpeed(2);
 			}
 			if (temp >= 18 && temp <= 30) {
-				setSpeed(2);
+				setSpeed(1);
 			}
 
 		}
@@ -109,10 +109,10 @@ public:
 			
 
 			if (temp >= 5 && temp <= 10) {
-				setSpeed(2);
+				setSpeed(1);
 			}
 			if (temp >= 18 && temp <= 21) {
-				setSpeed(3);
+				setSpeed(2);
 			}
 
 		}

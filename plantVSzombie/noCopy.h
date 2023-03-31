@@ -1,7 +1,6 @@
 #pragma once
 #include <SDL.h>
 #include <SDL_image.h>
-#include<thread>
 const int windowsWide = 1400;
 const int windowsHeight = 800;
 
@@ -88,50 +87,6 @@ protected:
 
 };
 
-
-class Time
-{
-	using Type_ = std::chrono::high_resolution_clock::time_point;
-	using Clock_ = std::chrono::high_resolution_clock;
-public:
-	Time():
-		current_time_{},
-		last_time_{},
-		isFirst_(true)
-	{}
-
-	//void seed()
-	//{
-	//	current_time_ = last_time_ = Clock_::now();
-	//}
-
-
-	// ms
-	long long pushDown()noexcept
-	{
-		current_time_ = Clock_::now();			
-
-		auto temp = current_time_ - last_time_;
-
-		last_time_ = current_time_;
-
-		if (isFirst_)
-		{
-			isFirst_ = false;
-			return 0;
-		}
-
-		return (temp.count()/1000)/1000;
-	}
-
-
-private:
-	Type_ current_time_;
-	Type_ last_time_;
-
-	bool isFirst_;
-
-};
 
 
 

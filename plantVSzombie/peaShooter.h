@@ -1,13 +1,13 @@
 #pragma once
-#include"Plant.h"
+#include"attackPlant.h"
 #include"Bullet.h"
 
-class peaShooter final : public Plant
+class peaShooter final : public attackPlant
 {
 public:
 
 	peaShooter(int x,int y):
-		Plant(x,y)
+		attackPlant(x,y)
 	{
 		setPath("E:\\GamePicture\\image\\Pea\\Peashooter\\Frame",ActMode::Wait);
 		//bullet_.setAttackPath("E:\\GamePicture\\image\\Bullet\\PeaBullet");
@@ -19,7 +19,7 @@ public:
 	}
 
 	peaShooter(const Position&pos) :
-		Plant(pos)
+		attackPlant(pos)
 	{
 		setPath("E:\\GamePicture\\image\\Pea\\Peashooter\\Frame", ActMode::Wait);
 		//bullet_.setAttackPath("E:\\GamePicture\\image\\Bullet\\PeaBullet");
@@ -32,7 +32,7 @@ public:
 
 	~peaShooter() = default;
 
-	virtual void playImage(SDL_Renderer* render,bool startPlay)override
+	virtual void playImage(SDL_Renderer* render, bool startPlay, bool isPointSun)override
 	{
 
 		waitAction(render, 12);
@@ -46,7 +46,7 @@ public:
 
 	//	if (!isDie())
 	//	{
-	//		Plant::attack(render, zombie, flag);
+	//		attackPlant::attack(render, zombie, flag);
 
 	//		waitAction(render, 12);
 
@@ -67,7 +67,11 @@ public:
 		Action::waitAction(render, max);
 	}
 
-
+	//virtual int draw(SDL_Renderer* render, const Position& zombie, bool die)
+	//{
+	//	
+	//	return -1;
+	//}
 
 
 	//int attack(SDL_Renderer*render,const Position& zombie)override

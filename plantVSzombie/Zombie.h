@@ -2,7 +2,7 @@
 #include"Position.h"
 #include"Action.h"
 #include"noCopy.h"
-#include"Plant.h"
+#include"attackPlant.h"
 
 struct Zombie :public Action
 {
