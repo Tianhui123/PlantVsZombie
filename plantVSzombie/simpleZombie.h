@@ -1,5 +1,6 @@
 #pragma once
 #include"Zombie.h"
+#include"Music.h"
 #include<string>
 class simpleZombie final :public Zombie
 {
@@ -8,9 +9,11 @@ public:
 
 	simpleZombie(int x, int y) :
 		Zombie(x, y),
-		random{}
+		random{},
+		diePlay_{},
+		headPlay_{}
 	{
-		random = (SDL_GetTicks()-rand()) % 3;
+		random = (SDL_GetTicks()-rand()) % 3 ;
 		if (random  == 0)
 		{
 			setPath("E:\\GamePicture\\image\\SimpleZombie\\move3\\Frame", ActMode::HeadMove);
@@ -29,12 +32,19 @@ public:
 
 		setPath("E:\\GamePicture\\image\\SimpleZombie\\noHeadMove\\Frame", ActMode::NoHeadMove);
 		setPath("E:\\GamePicture\\image\\SimpleZombie\\noHeadAttack\\Frame", ActMode::NoHeadAttack);
+
+		setPath("E:\\GamePicture\\image\\SimpleZombie\\die\\Frame", ActMode::Die);
+
+		chunk_.setChunk("E:\\GamePicture\\Music\\chomp.ogg");
 	}
 
 	simpleZombie(const Position& pos) :
-		Zombie(pos)
+		Zombie(pos),
+		random{},
+		diePlay_{},
+		headPlay_{}
 	{
-		random = (rand() % 30 + 1) % 3;
+		random = (rand() % 30) % 3;
 		if (random  == 0)
 		{
 			setPath("E:\\GamePicture\\image\\SimpleZombie\\move3\\Frame", ActMode::HeadMove);
@@ -53,6 +63,10 @@ public:
 
 		setPath("E:\\GamePicture\\image\\SimpleZombie\\noHeadMove\\Frame", ActMode::NoHeadMove);
 		setPath("E:\\GamePicture\\image\\SimpleZombie\\noHeadAttack\\Frame", ActMode::NoHeadAttack);
+
+		setPath("E:\\GamePicture\\image\\SimpleZombie\\die\\Frame", ActMode::Die);
+
+		chunk_.setChunk("E:\\GamePicture\\Music\\chomp.ogg");
 	}
 
 	~simpleZombie()
@@ -75,7 +89,7 @@ public:
 		}*/
 
 		
-		int temp = getMoveCount(false);
+		/*int temp = getMoveCount(false);
 		setSpeed(0);
 		if (random == 0)
 		{		
@@ -115,11 +129,11 @@ public:
 				setSpeed(2);
 			}
 
-		}
+		}*/
+
+		setSpeed(1);
 
 
-		auto newPos = move();
-		setPos(newPos);
 
 	}
 
@@ -129,84 +143,108 @@ public:
 	virtual int attack(SDL_Renderer* render, std::vector<std::shared_ptr<Plant>>& plants)override
 	{
 
-		std::sort(plants.begin(), plants.end(),
-			[](std::shared_ptr<Plant>& a, std::shared_ptr<Plant>& b) {return a->getPos().x_ > b->getPos().x_; });
-
-		if (plants.size() == 0 &&! isDie())
-		{
-			moveSpeed();
-
-			
-
-			if (hp_ >= 25)
-				moveAction(render);
-			else {
-
-				moveSpeed();
-				noheadMoveAction(render, 17);
-			}
-
-			return fire_;
-		}
-		else
+		if (!isDie())
 		{
 
-			for (const auto& i : plants)
-			{
-
-				
-
-				if (!isDie() && !i->isDie())
+				for (const auto& i : plants)
 				{
-					
 
-					if (touchJudge(i->getPos())&&!isDie())
+					if (!i->isDie())
 					{
-						
 
-						setSpeed(0);
 
-						/*auto newPos = move();
-						setPos(newPos);*/
-						i->setHP(fire_);
-						if (hp_ >= 25)
-							headAttackAction(render, 20);
-						else
+						if (touchJudge(i->getPos()))
 						{
+
+
+							setSpeed(0);
+
+							// 播放音效
 							
-							noheadAttackAction(render, 10);
+							chunk_.playOnce(3, true);
+
+							i->setHP(fire_);
+							if (hp_ >= 25)
+							{
+								headAttackAction(render, 20);
+							}
+							else
+							{
+
+								noheadAttackAction(render, 10);
 
 
+							}
+
+							return fire_;
+						}
+						else 
+						{
+							continue;
 						}
 
-						break;
+
+
+
 					}
-
-
-
 
 
 				}
 
 
 				
+				// 移动动画
 				moveSpeed();
 
 				if (hp_ >= 25)
 					moveAction(render);
-				else
-				{					
+				else 
+				{
+
+
+
 					noheadMoveAction(render, 17);
 				}
 
-				break;
+			
+		}
+		else
+		{
+			if (!diePlay_) 
+			{
+
+				setSpeed(0);
+
+				dieAction(render, 9);
+
+				//播放死亡音效
+				if (getCount(ActMode::Die) == 1)
+					chunk_.setChunk("E:\\GamePicture\\Music\\zombie_falling_1.ogg");
+
+				chunk_.playOnce(5,true);
+
+				if (getCount(ActMode::Die) == 9) {					
+
+
+					diePlay_ = true;
+				}
+					
 
 			}
 
 
 		}
+
+		auto newPos = move();
+		setPos(newPos);
+
 		return fire_;
 
+	}
+
+	bool getDiePlay()override
+	{
+		return diePlay_;
 	}
 
 	virtual int demage(int fire)override
@@ -239,5 +277,14 @@ public:
 
 
 private:
+
+	// 是否播放过死亡动画
+	bool diePlay_;
+
+	// 是否播放过掉头动画
+	bool headPlay_;
+
 	unsigned int random;
+
+	Music chunk_;
 };

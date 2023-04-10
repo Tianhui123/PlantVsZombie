@@ -7,9 +7,10 @@ class sunFlower : public producePlant
 {
 public:
 	sunFlower(const Position& p) :
-		sun_{ new Sun(Position(pos_.x_ , pos_.y_ )) },
+		sun_{ },
 		producePlant(p),
-		count_{0}
+		count_{ 0 },
+		showSun_{  }
 	{
 
 		producerCount_ = 50;
@@ -55,12 +56,20 @@ public:
 
 	}
 
-	virtual void playImage(SDL_Renderer* render, bool startPlay, bool isPointSun)
+	// 等待动画
+	virtual void playImage(SDL_Renderer* render, bool startPlay)
 	{
-		draw(render, Position(0, 0), false,isPointSun);
+		draw(render, Position(0, 0), false);
 	}
 
-	int draw(SDL_Renderer* render, const Position& zombie, bool die,bool isPointSun)override
+	// 设置是否显示阳光
+	void setShowSun(bool show)
+	{
+		showSun_ = show;
+	}
+
+	// 僵尸来临时的动画
+	int draw(SDL_Renderer* render, const Position& zombie, bool die)override
 	{
 		if (arrTexture_.size() == 0)
 		{
@@ -86,15 +95,16 @@ public:
 
 		}
 
-		if (isPointSun)
+		if (!showSun_&&sun_.get())
 			sun_->live_ = false;
 
 		//sun_->drawSun(render);
 		produce(render);
 
-		return 1;
+		return -1;
 	}
 
+	// 生产阳光
 	int produce(SDL_Renderer* render)override
 	{
 		if (isDie())
@@ -103,16 +113,18 @@ public:
 		
 
 		//间隔时间
-		if (produceTime_.queryTime(8000))
+		if (showSun_ == false && produceTime_.queryTime(8000))
 		{
 			sun_ = std::shared_ptr<Sun>(new Sun(Position(pos_.x_ + 5, pos_.y_ - 5)));
+
+			showSun_ = true;
 
 			return -1;
 		}
 		else
 		{
-
-			sun_->drawSun(render);
+			if (sun_.get()!=nullptr && showSun_)
+				sun_->drawSun(render);
 
 			return producerCount_;
 
@@ -123,7 +135,7 @@ public:
 
 	}
 
-
+	// 判断阳光是否存在
 	bool isSunLive()
 	{
 		if (sun_.get() != nullptr)
@@ -133,11 +145,17 @@ public:
 	}
 
 private:
+	// 阳光
 	std::shared_ptr<Sun> sun_;
 
+	// 花的动画
 	std::vector<SDL_Texture*>arrTexture_;
 
+	// 图片计数
 	unsigned int count_;
+
+	// 是否显示阳光
+	bool showSun_;
 
 	using producePlant::producerCount_;
 

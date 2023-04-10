@@ -143,6 +143,39 @@ struct Action : noCopy
 			return Move_.headMove_.imageCount_;
 	}
 
+	unsigned int getCount(const ActMode&mode)
+	{
+		switch (mode)
+		{
+		case ActMode::Wait:
+			return wait_.imageCount_;
+			break;
+
+		case ActMode::HeadMove:
+			return Move_.headMove_.imageCount_;
+			break;
+
+		case ActMode::NoHeadMove:
+			return Move_.noheadMove_.imageCount_;
+			break;
+
+		case ActMode::HeadAttack:
+			return Attack_.headAttack_.imageCount_;
+			break;
+
+		case ActMode::NoHeadAttack:
+			return Attack_.noheadAttack_.imageCount_;
+			break;
+
+		case ActMode::Die:
+			return die_.imageCount_;
+			break;
+
+		}
+
+		return 0;
+	}
+
 	void setPath(const char* p, const ActMode& mode)
 	{
 

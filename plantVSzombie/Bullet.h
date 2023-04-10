@@ -1,21 +1,35 @@
 #pragma once
 #include"Action.h"
+#include"Music.h"
 
 class Bullet :public Action
 {
 public:
 
-	Bullet() :
-		speed_(16),
+	Bullet(const char*bulletMusic) :
+		speed_(20),
 		fire_(10),
 		time_(5),
-		touch_(false)
+		touch_(false),
+		play_{true},
+		bulletMusic_{ }
 	{
+		bulletMusic_.setChunk(bulletMusic);
+		
 	};
 
 	~Bullet() = default;
 
-
+	void headAttackAction(SDL_Renderer* render, const int& max)override
+	{
+		if (play_) {
+			bulletMusic_.playOnce();
+			play_ = false;
+		}
+		
+		Action::headAttackAction(render, max);
+		
+	}
 
 	Position move()
 	{
@@ -51,6 +65,10 @@ private:
 	int time_;
 
 	bool touch_;
+
+	bool play_;
+
+	Music bulletMusic_;
 
 };
 

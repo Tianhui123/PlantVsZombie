@@ -146,7 +146,7 @@ namespace TianHui
 		inline auto submit(_Ty(&& _callback), _list && ...t)->std::future< decltype(_callback(t...)) >;
 
 
-		void start(int size = 4,const threadMode&m=threadMode::Detch)
+		void start(int size = 4, const threadMode& m = threadMode::Detch)
 		{
 			for (int i = 0; i < size; ++i, ++threadSize_)
 			{
@@ -276,7 +276,6 @@ namespace TianHui
 	inline auto ThreadPool::submit(_Ty(&& _callback), _list && ...t)->std::future< decltype(_callback(t...)) >
 	{
 		using Rtype = decltype(_callback(t...));
-		//auto time = std::chrono::high_resolution_clock::now();
 
 		auto task = std::shared_ptr<std::packaged_task< Rtype()>>{ new std::packaged_task< Rtype()>([_callback, t...]()->Rtype {return _callback(t...); }) };
 

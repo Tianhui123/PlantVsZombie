@@ -12,14 +12,14 @@ public:
 
 	virtual int getSunPrice() = 0;
 
-	virtual int draw(SDL_Renderer* render, const Position& zombie, bool die, bool isPointSun) = 0;
+	virtual int draw(SDL_Renderer* render, const Position& zombie, bool die) = 0;
 
 	virtual int attack(SDL_Renderer* render, const Position& zombie, bool die)
 	{
 		return 1;
 	}
 
-	virtual void playImage(SDL_Renderer* render, bool startPlay, bool isPointSun) = 0;
+	virtual void playImage(SDL_Renderer* render, bool startPlay) = 0;
 
 
 	void setSun(const int& s)

@@ -23,7 +23,12 @@ struct imagePlarer
 
 	}
 
+	// 图片的纹理容器
 	std::vector<SDL_Texture*>imageArrTexture_;
+
+	// 第几张图片
 	unsigned int imageCount_;
+
+	// 图片的路径
 	const char* imagePath_;
 };
